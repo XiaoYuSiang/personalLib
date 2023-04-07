@@ -4,9 +4,8 @@
 #include <TMath.h>
 #include <TRandom.h>
 #include <TF1.h>
-#include </home/yusiang/personalLib/Math/DBMConT.h>
+#include "./DBMConT.h"
 using namespace TMath;
-
 
 Double_t Line2Dfun(Double_t *x, Double_t *par) {
   double xx = x[0];

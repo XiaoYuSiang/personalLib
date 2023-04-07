@@ -2,10 +2,11 @@
 #include <vector>
 #include <fstream>
 #include <algorithm>
-#include </home/yusiang/personalLib/Math/UnaryOperators.h>
-#include </home/yusiang/personalLib/Math/UnixTranslator.h>
-#include "/home/yusiang/personalLib/Math/DBMConT.h"
-#include </home/yusiang/personalLib/Math/DBMFitFunction.h>
+
+#include "./UnaryOperators.h"
+#include "./UnixTranslator.h"
+#include "./DBMConT.h"
+#include "./DBMFitFunction.h"
 using namespace DDMConT;
 
 namespace DBMMath

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <TMath.h>
 #include <TRandom.h>
-#include "/home/yusiang/personalLib/Math/DBMMath.h"
+#include "../Math/DBMMath.h"
 using namespace std;
 using namespace DBMMath;
 
