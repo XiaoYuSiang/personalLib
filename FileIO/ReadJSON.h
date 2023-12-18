@@ -4,7 +4,7 @@ using namespace std;
 
 string FindJSONAttr( const char* TagetFile, const char* TagetAttri, const char opt='E'){
   ifstream infile(TagetFile);
-  
+  // cout<<opt<<endl;
   string tmp; 
   while(infile.good()){
     string line; 
@@ -24,11 +24,12 @@ string FindJSONAttr( const char* TagetFile, const char* TagetAttri, const char o
     return tmp.data();
   }
   infile.close();
+  // cout<<"27 "<<opt<<"  "<<(opt=='W')<<endl;
   if(opt=='W'){
     cerr<<"Warning: personalLib/FileIO/ReadJSON.h: Not find the Attribute \""<<TagetAttri<<"\" L.31, return \"0\""<<endl;
     return "0";
   } 
-  FATAL(Form("Error: personalLib/FileIO/ReadJSON.h: Not find the Attribute \"%s\" L.31"TagetAttri));
+  FATAL(Form("Error: personalLib/FileIO/ReadJSON.h: Not find the Attribute \"%s\" L.31",TagetAttri));
 }
 
 char *FindJSONAttrS(const char* TagetFile, const char* TagetAttri, const char opt='E'){
@@ -54,7 +55,7 @@ double FindJSONAttrD( const char* TagetFile, const char* TagetAttri, const char 
   return strtod(tmp.data(), nullptr);
 }
 bool FindJSONAttrB( const char* TagetFile, const char* TagetAttri, const char opt='E'){
-  string tmp = FindJSONAttr(TagetFile,TagetAttri);
+  string tmp = FindJSONAttr(TagetFile,TagetAttri,opt);
   if(strcmp("true",tmp.data())==0||strcmp("True",tmp.data())==0||strcmp("TRUE",tmp.data())==0||atoi(tmp.data())==1){
     // cout<<tmp.data()<<endl;
     return 1;
