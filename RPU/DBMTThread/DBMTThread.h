@@ -130,10 +130,10 @@ void ContralThread(){
   for(;iProc<ProcessNum&&iProc<CPUNum;iProc++){
     AddThread(iProc,iProc);
   }
-  ListThreads(); cout<<endl;
+  ListThreads(); cout<<endl;// cout<<iProc<<"/"<<ProcessNum<<endl;
   gSystem->Sleep(tfirstBashDelay);
-  
-  while(Integral(proOn)>0){
+  // throw;
+  while(Integral(proOn)>0||iProc<ProcessNum){
     
     if(Integral(proOn)<CPUNum){
       // cout<<138<<endl;

@@ -61,6 +61,7 @@ ggNtuplizer/EventTree
 #ifndef UNTUPLIZER_H
 #define UNTUPLIZER_H
 
+#include <typeinfo>
 #include <map>
 #include <string>
 #include <vector>
@@ -83,7 +84,9 @@ ggNtuplizer/EventTree
 #include <TSystem.h>
 #include <TLeafObject.h>
 #include <TLeafElement.h>
-
+#if defined (__MAKECINT__) 
+#pragma link C++ class vector<Long64_t>+; 
+#endif
 // prints a message and exits gracefully
 #ifndef FATAL
 #define FATAL(msg) do { fprintf(stderr, "FATAL: %s\n", msg); gSystem->Exit(1); } while (0)
@@ -390,7 +393,8 @@ class TreeReader {
       kArrVectInt,       // array of vector<int> (vector<vector<int> >)
       kArrVectFloat,     // array of vector<float> (vector<vector<float> >)
       kTObject,          // general object inherited from TObject
-      kVoidPtr           // all other data types
+      kVoidPtr,           // all other data types
+      Unknown 
    };
 
    // TTree/TChain initializers
@@ -936,7 +940,7 @@ void TreeReader::FindLeaf(const char* bname)
       FATAL(Form("leaf not found: %s", bname));
 
    // actual data type of the leaf's payload
-   ETypes type;
+   ETypes type = ETypes::Unknown;
 
    // vector<...> arrays and other objects not inherited from TObject
    if (leaf->IsA() == TLeafElement::Class()) {

@@ -28,4 +28,3 @@ void FindYRangeTH2F(const TH2F* tH2FObj,float &ReturnZm,float &ReturnZM,const in
               /float(pow(10,precision));
   
 }
-

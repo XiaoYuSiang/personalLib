@@ -1,6 +1,9 @@
+#pragma once
+#include "TLatex.h"
 #include "TCanvas.h"
 #include "TPaveText.h"
 #include "TVirtualPad.h"
+#include "TStyle.h"
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -94,7 +97,7 @@ TCanvas *EasyCanvas(const char* CName, const int sizeX = 960, const float xRate 
 }
 
 TCanvas *EasyCanvas(const char* CName, const string resCode="540p", const int DnX = 1, const int DnY = 1, const string DOutline="true"){
-  int px, py;
+  int px = 0, py = 0;
   if(int(resCode.find("pv"))!=-1||int(resCode.find("pv"))!=-1){
     if     (int(resCode.find("540"))!=-1)  px  = 540;
     else if(int(resCode.find("1440"))!=-1) px = 1440;
@@ -136,4 +139,196 @@ TCanvas *EasyCanvas(const char* CName, const string resCode="540p", const int Dn
   }
   return EasyCanvas(CName,px,py,DnX,DnY,DOutline);
 
+}
+
+void LayoutProfile2D(TH2F* h2, TCanvas* c,string optX = "CT",string optY = "CT")
+{
+    TStyle* oldStyle = (TStyle*)gStyle->Clone("oldStyle");
+    TGaxis::SetMaxDigits(3);
+    gStyle->SetPaintTextFormat("1.2e");
+    std::transform(optX.begin(), optX.end(), optX.begin(),
+                 [](unsigned char c){ return std::tolower(c); });
+
+    std::transform(optY.begin(), optY.end(), optY.begin(),
+                 [](unsigned char c){ return std::tolower(c); });
+
+    c->cd();
+    c->Clear();
+
+    // ---- Pads ----
+    TPad* pad_main  = new TPad("pad_main",  "Main 2D",      0.25, 0.25, 1.00, 1.00);
+    pad_main->SetLeftMargin(0.0);
+    pad_main->SetBottomMargin(0.0);
+    pad_main->SetTopMargin(0.05);
+    pad_main->SetRightMargin(0.05);
+    TPad* pad_left  = new TPad("pad_left", "Y Projection", 0.00, 0.00, 0.25, 1.00);
+    pad_left->SetTopMargin(0.04);
+    pad_left->SetRightMargin(0.01);
+    pad_left->SetLeftMargin(0.4);
+    pad_left->SetBottomMargin(0.25);
+    TPad* pad_bottom= new TPad("pad_bottom","X Projection", 0.00, 0.00, 1.00, 0.25);
+    pad_bottom->SetRightMargin(0.04);
+    pad_bottom->SetTopMargin(0.01);
+    pad_bottom->SetBottomMargin(0.4);
+    pad_bottom->SetLeftMargin(0.25);
+
+    pad_main->SetFillStyle(3000);
+    pad_left->SetFillStyle(3000);
+    pad_bottom->SetFillStyle(3000);
+    pad_main->SetLineColorAlpha(0,0);
+    pad_left->SetLineColorAlpha(0,0);
+    pad_bottom->SetLineColorAlpha(0,0);
+    pad_main->Draw();
+    pad_left->Draw();
+    pad_bottom->Draw();
+
+    // ==== MAIN COLZ ====
+    pad_main->cd();
+    
+    h2->GetZaxis()->SetMaxDigits(3);
+    h2->SetMarkerSize(2);
+    h2->Draw("COLZ text");
+    
+    const string Xtitle = h2->GetXaxis()->GetTitle();
+    const string Ytitle = h2->GetYaxis()->GetTitle();
+    // vector<double> vHistX, vHistY, vHistC={0,1,1.3};
+    vector<double> vHistX, vHistY, vHistC={0,1,1.11};
+    // =======================================
+    //  LEFT → Y-axis Projection (rotated)
+    // =======================================
+    pad_left->cd();
+
+    // 建 Y 投影
+    TH1F* hY = (TH1F*)h2->ProjectionY("projY");
+    for(int i=1;i<=h2->GetNbinsY();i++){
+      vHistY.push_back ( h2->GetYaxis()->GetBinCenter(i) - h2->GetYaxis()->GetBinWidth(i)/2. );
+      if(i==h2->GetNbinsY()) 
+        vHistY.push_back ( h2->GetYaxis()->GetBinCenter(i) + h2->GetYaxis()->GetBinWidth(i)/2. );
+      // cout<<vHistY.back()<<endl;
+    }
+    // 做成 2D colz 風格（投影當成 2D 1×N bins）
+    TH2F* hY2 = new TH2F("hY2",Form(";Ratio;%s",Ytitle.data()), vHistC.size()-1, vHistC.data(), vHistY.size()-1, vHistY.data());
+
+    for(int i=1;i<=hY->GetNbinsX();i++)
+        hY2->SetBinContent(1, i, hY->GetBinContent(i));
+
+    if(int(optY.find("ct"))!=-1) hY2->GetYaxis()->CenterLabels(1);
+    h2->GetYaxis()->CenterLabels(1);
+    hY2->GetXaxis()->CenterTitle(1);
+    hY2->GetYaxis()->CenterTitle(1);
+    
+    hY2->GetXaxis()->SetTitleSize(0.14);
+    hY2->GetYaxis()->SetTitleSize(0.14);
+    hY2->GetXaxis()->SetTitleOffset(0.25);
+    hY2->GetYaxis()->SetTitleOffset(1.4);
+    hY2->GetXaxis()->SetLabelSize(0.14);
+    hY2->GetYaxis()->SetLabelSize(0.14);
+    hY2->GetXaxis()->SetLabelOffset(-0.083);
+    hY2->GetYaxis()->SetLabelOffset(0.05);
+    hY2->GetXaxis()->SetNdivisions(302);
+
+    hY2->SetStats(0);
+    hY2->Draw("COL");
+
+    // --- TGraphErrors for Y ---
+    int ny = hY->GetNbinsX();
+    double maxNy = hY->GetMaximum();
+    if (maxNy <= 0) maxNy = 1.0;   // 避免除以 0
+    TGraphErrors* gY = new TGraphErrors(ny);
+    for(int i=1;i<=ny;i++){
+        double y  = hY->GetBinCenter(i);
+        double n  = hY->GetBinContent(i);
+        double en = hY->GetBinError(i);
+        double n_scaled  = n / maxNy;
+        double en_scaled = en / maxNy;
+        gY->SetPoint(i-1, n_scaled, y);    // N on X-axis (horizontal)
+        gY->SetPointError(i-1, en_scaled, 0);
+    }
+
+    gY->SetLineColor(2);
+    gY->SetMarkerColor(2);
+    gY->SetLineWidth(2);
+    gY->Draw("L SAME");  // 疊加在 COLZ 上
+
+    // =======================================
+    //  BOTTOM → X-axis Projection
+    // =======================================
+    pad_bottom->cd();
+
+    // 建 X 投影
+    TH1F* hX = (TH1F*)h2->ProjectionX("projX");
+
+    for(int i=1;i<=hX->GetNbinsX();i++){
+      vHistX.push_back ( hX->GetXaxis()->GetBinCenter(i) - hX->GetXaxis()->GetBinWidth(i)/2. );
+      if(i==hX->GetNbinsX()) 
+        vHistX.push_back ( hX->GetXaxis()->GetBinCenter(i) + hX->GetXaxis()->GetBinWidth(i)/2. );
+    }
+    // 也做成 2D colz（Nbins × 1）
+    TH2F* hX2 = new TH2F("hX2",Form(";%s;Ratio",Xtitle.data()), vHistX.size()-1, vHistX.data(), vHistC.size()-1, vHistC.data());
+
+    for(int i=1;i<=hX->GetNbinsX();i++)
+        hX2->SetBinContent(i, 1, hX->GetBinContent(i));
+
+    if(int(optX.find("ct"))!=-1) hX2->GetXaxis()->CenterLabels(1);
+    hX2->GetXaxis()->CenterTitle(1);
+    hX2->GetYaxis()->CenterTitle(1);
+    
+    hX2->GetXaxis()->SetTitleSize(0.14);
+    hX2->GetYaxis()->SetTitleSize(0.14);
+    hX2->GetXaxis()->SetTitleOffset(1.2);
+    hX2->GetYaxis()->SetTitleOffset(9999);
+    hX2->GetXaxis()->SetLabelSize(0.14);
+    hX2->GetYaxis()->SetLabelSize(0.14);
+    hX2->GetXaxis()->SetLabelOffset(0.05);
+    hX2->GetYaxis()->SetLabelOffset(0.01);
+    hX2->GetYaxis()->SetNdivisions(302);
+    
+    hX2->SetStats(0);
+    hX2->Draw("COL");
+
+    // --- TGraphErrors for X ---
+    int nx = hX->GetNbinsX();
+    // 找最大值
+    double maxNx = hX->GetMaximum();
+    if (maxNx <= 0) maxNx = 1.0;   // 避免除以 0
+
+    TGraphErrors* gX = new TGraphErrors(nx);
+    for(int i = 1; i <= nx; i++){
+        double x  = hX->GetBinCenter(i);
+        double n  = hX->GetBinContent(i);
+        double en = hX->GetBinError(i);
+
+        double n_scaled  = n / maxNx;
+        double en_scaled = en / maxNx;
+
+        gX->SetPoint(i-1, x, n_scaled);       // X horizontal, N vertical (scaled)
+        gX->SetPointError(i-1, 0, en_scaled); // Error also scaled
+    }
+
+    gX->SetLineColor(2);
+    gX->SetMarkerColor(2);
+    gX->SetLineWidth(2);
+    gX->Draw("L SAME");
+    pad_main->Update();  // 必須要，讓 stats box 生成
+    c->cd();
+    TPaveStats* st = (TPaveStats*)h2->GetListOfFunctions()->FindObject("stats")->Clone();
+    if (st) {
+        st->SetParent(c);        // 把 stats box 移到 canvas 上
+        st->SetName("global_stats");
+
+        // NDC 座標：左下角 (0.02~0.18, 0.02~0.15)
+        st->SetX1NDC(0.001);
+        st->SetX2NDC(0.20);
+        st->SetY1NDC(0.001);
+        st->SetY2NDC(0.16);
+
+        st->SetTextColor(kBlack);
+        st->Draw();              // 重新畫到整體 canvas
+    }
+    h2->SetStats(0);
+    c->Modified();
+    c->Update();
+    gStyle->Reset("Default"); 
+    gStyle->Copy(*oldStyle);
+    delete oldStyle;
 }
